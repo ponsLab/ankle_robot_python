@@ -94,8 +94,8 @@ class FFTAI_M1:
         self.sensor.tpdo[index].inhibit_time = 0
         self.sensor.tpdo[index].enabled = True
 
-        self.sensor.tpdo[1].cob_id = 0x192  # change torque sensor address based on M1
-        self.sensor.tpdo[1].add_subscribe()
+        self.sensor.tpdo[1].cob_id = 0x191  # change torque sensor address based on M1 (unflashed 0x192, flashed 0x191)
+        self.sensor.tpdo[1].add_subscribe()  # does not exist in canopen 1.2.1 (canopen 2.1.0 has subscribe() function)
 
     def initialization(self, mode):
         self.sensor_init()

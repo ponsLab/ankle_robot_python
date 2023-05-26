@@ -631,7 +631,7 @@ class MainWindow(QtWidgets.QMainWindow):
             # if self.mode == mode_const.ROM_MODE:      # ROM measurement
             # elif self.mode == mode_const.MVC_MODE:    # MVC measurement
             # elif self.mode == mode_const.CPM_MODE:    # CPM mode
-            # elif self.mode == mode_const.VFB_MODE:    # Visaul feedback mode
+            # elif self.mode == mode_const.VFB_MODE:    # Visual feedback mode
             # elif self.mode == mode_const.HFB_MODE:    # Haptic feedback mode
 
             if self.mode == mode_const.ROM_MODE:  # ROM measurement
@@ -642,7 +642,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 # self.cbTraj.setEnabled(True)
                 self.cbTraj.setCurrentIndex(0)
                 self.btn_load.setEnabled(True)
-            elif self.mode == mode_const.VFB_MODE:  # Visaul feedback mode
+            elif self.mode == mode_const.VFB_MODE:  # Visual feedback mode
                 # self.cbTraj.setEnabled(True)
                 self.cbTraj.setCurrentIndex(2)
                 self.btn_load.setEnabled(True)
@@ -669,7 +669,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.btn_Saving.setEnabled(True)
             elif self.mode == mode_const.CPM_MODE:    # CPM mode
                 self.Saving()
-            elif self.mode == mode_const.VFB_MODE:    # Visaul feedback mode
+            elif self.mode == mode_const.VFB_MODE:    # Visual feedback mode
                 self.Saving()
             elif self.mode == mode_const.HFB_MODE:    # Haptic feedback mode
                 self.btn_Saving.setEnabled(True)
@@ -692,7 +692,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.EMGthread = EMGThread(self.check, self.EMGQ)
                 print("EMG Connected!")
             except:
-                print('No EMG Conncetion! Please check and restart.')    # If No EMG connection, the system will not work.
+                print('No EMG Connection! Please check and restart.')    # If No EMG connection, the system will not work.
 
             #### M1 thread connection ####
             try:
@@ -826,7 +826,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.btn_MVC.setEnabled(True)
             # elif self.mode == mode_const.CPM_MODE:  # CPM mode
             #     # self.start()
-            # elif self.mode == mode_const.VFB_MODE:  # Visaul feedback mode
+            # elif self.mode == mode_const.VFB_MODE:  # Visual feedback mode
             #     # self.start()
             # elif self.mode == mode_const.HFB_MODE:  # Haptic feedback mode
                 # self.start()
@@ -868,7 +868,7 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.btn_start.setEnabled(True)
                 # self.btn_Saving.setEnabled(True)
                 self.start()
-            elif self.mode == mode_const.VFB_MODE:  # Visaul feedback mode
+            elif self.mode == mode_const.VFB_MODE:  # Visual feedback mode
                 self.btn_load.setEnabled(True)
                 self.cbTraj.setEnabled(True)
                 self.btn_start.setEnabled(True)
@@ -1027,7 +1027,7 @@ class MainWindow(QtWidgets.QMainWindow):
         #     self.magnitude = 30
         #     self.cbTraj.setCurrentIndex(0)
         #     self.btn_start.setEnabled(False)
-        # elif i == 3:    # Visaul feedback mode
+        # elif i == 3:    # Visual feedback mode
         #     self.magnitude = 30
         #     self.cbTraj.setCurrentIndex(1)
         #     self.btn_start.setEnabled(False)
