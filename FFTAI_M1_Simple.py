@@ -37,13 +37,12 @@ class FFTAI_M1:
     def __init__(self, bustype='pcan', channel='PCAN_USBBUS1', bitrate=1000000):
         # Start with creating a network representing one CAN bus
         self.network = canopen.Network()
-
         # Connect to the CAN bus
-        # (see https://python-can.readthedocs.io/en/latest/bus.html).
+        # (see https://python-can.readthedocs.io/en/stable/installation.html).
         self.network.connect(bustype=bustype, channel=channel, bitrate=bitrate)
-
         self.node = self.network.add_node(1, 'CopleyAmp_yw.eds')
         self.sensor = self.network.add_node(2, 'torque_sensor.eds')
+        print("M1 connected!")
 
         # # reset error
         self.reset_error()
@@ -148,6 +147,7 @@ class FFTAI_M1:
                 self.initialization_velocity()
             elif self.compency == 3:
                 self.initialization_torque()
+        print("Mode set!")
 
     def initialization_record(self):
         print("Initializing recoding mode")
@@ -358,7 +358,7 @@ class FFTAI_M1:
         self.position = M1_MISC.count2deg(p)
         self.velocity = M1_MISC.dec2rpm(v)
         self.torque = t
-        self.torque_s = t_s *0.0707-107.6735-Torque_Offset # torque sensor calibration
+        self.torque_s = t_s *0.0707-107.6735-Torque_Offset  # torque sensor calibration
         self.current = c
 
     def position_loop(self, position):
@@ -480,17 +480,19 @@ class FFTAI_M1:
                 print('Out of ROM! Motor Off!')
 
             else:
+                vel_act = self.velocity / 69 / 60 * math.pi * 2 # Foot plate velocity in radians
+                position_rad = self.position * math.pi / 180
+
+                # Compensate for weight of pedal
+                # torque_error = self.torque_s + para_sin * np.sin(position_rad) + para_cos * np.cos(position_rad)
+
                 # Filter measured torque data with a first order filter
                 torque_error = self.torque_s  # Calculate torque
                 torCutoffFreq = 6
                 alphaTor = (2*np.pi*0.01*torCutoffFreq)/(2*np.pi*0.01*torCutoffFreq+1)
                 Tor_filt = alphaTor * torque_error + (1 - alphaTor) * Tor_filt_prev
                 Tor_filt_prev = Tor_filt
-
-
                 tor_fb = Tor_filt  # Interaction torque
-                vel_act = self.velocity / 69 / 60 * math.pi * 2 # Foot plate velocity in radians
-                position_rad = self.position * math.pi / 180
 
                 # Estimated torque based on EMG signals. Uses velocity thresholds for stability
                 if (vel_act > 0.2) and EMGSignal1 > 0.1:

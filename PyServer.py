@@ -12,7 +12,7 @@ class recs(QThread):
 
     def __init__(self):
         QThread.__init__(self)
-        print('Initialize the Socket')
+        print('Initializing the TCP socket')
         address = '127.0.0.1'
         port = 25001
         self.s = socket(AF_INET, SOCK_STREAM)

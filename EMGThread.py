@@ -13,7 +13,7 @@ class EMGThread(QThread):
 
     def __init__(self,out_q, out_EMG):
         QThread.__init__(self)
-        print('initialize EMG Sensor')
+        print('Initializing EMG thread')
         self.EMG_queue = Queue()
         self.EMG_data_ch1 = 0
         self.EMG_data_ch2 = 0

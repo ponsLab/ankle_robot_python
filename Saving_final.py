@@ -32,7 +32,7 @@ class DataSave(Thread):
                 for k in range(100):
                     for i in range(self.number):
                         tickets = self.data_queue.get()
-                        print(self.data_queue.qsize())  ## Check whether the data is stacked
+                        # print(self.data_queue.qsize())  ## Check whether the data is stacked
                         rows[k,i] = tickets
 
                 with open(self.filename, 'a', newline = '') as csvfile:

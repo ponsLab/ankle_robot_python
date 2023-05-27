@@ -5,7 +5,7 @@
 import nidaqmx
 from nidaqmx import constants
 import numpy as np
-
+import time
 
 class EMG_collector:
 
@@ -19,16 +19,15 @@ class EMG_collector:
             print("EMG Connected!")
         except:
             self.connected = False
-            print('No EMG Connection! Please check and restart.')  # If No EMG connection, the system will not work.
+            print('No EMG Connected!')
 
     def collect_EMG(self):
         if self.connected:
             self.data = self.task.read(number_of_samples_per_channel=1)
             temp = np.array(self.data)
-            print(temp.shape)
-            ch1 = temp[0,:]
-            ch2 = temp[1,:]
         else:
-            ch1 = 0
-            ch2 = 0
+            temp = np.array([[0], [0]])
+            time.sleep(0.00196)  # sleep 2 ms to account for task.read timing
+        ch1 = temp[0, :]
+        ch2 = temp[1, :]
         return ch1, ch2

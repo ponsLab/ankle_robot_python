@@ -25,13 +25,14 @@ class mode_const:
     CPM_MODE = 3
     VFB_MODE = 4
     HFB_MODE = 5
+    TSO_MODE = 6
 
 class M1Thread(QThread):
     signal = pyqtSignal('PyQt_PyObject')
 
     def __init__(self, function, in_q, in_EMG):
         QThread.__init__(self)
-        print('initialize the m1 thread')
+        print('Initializing M1 thread')
         #### Initial setup for M1 device
         self.m1 = FFTAI_M1(bustype='pcan', channel='PCAN_USBBUS1')
         self.m1.pdo_conf()
@@ -68,7 +69,7 @@ class M1Thread(QThread):
         self.EMG2_fault_cnt = 0
 
     def setmode(self, mode):
-        print('set mode')
+        print('Mode changed')
         self.mode = mode
         self.m1.initialization(mode + 1)
 
@@ -180,6 +181,7 @@ class M1Thread(QThread):
             #### 6. Send processed EMG data to the EMG controller (in FFTAI_M1 file)
             gl.set_value('EMGSignal1', EMG1_filt/saveMaxMVC1)
             gl.set_value('EMGSignal2', EMG2_filt/saveMaxMVC2)
+            offset = gl.get_value("MVCTorqueOffset")
 
             ###########################################################
             #### M1 thread, use checkingpoint as syncronized timer ####
@@ -198,7 +200,7 @@ class M1Thread(QThread):
                     self.TorCounter = self.TorCounter + 1
 
                 # Check for Torque max and min
-                TorTemp = self.m1.torque_s
+                TorTemp = self.m1.torque_s - offset  # account for MVC offset
                 if self.TorMax < TorTemp:
                     self.TorMax = TorTemp
                 if self.TorMin > TorTemp:
@@ -206,7 +208,7 @@ class M1Thread(QThread):
 
                 #### Mode selection ####
                 if self.mode == mode_const.ROM_MODE:  # ROM measurement
-                    target = self.callback([self.m1.position, self.m1.torque_s])
+                    target = self.callback([self.m1.position, self.m1.torque_s - offset])
                     self.m1.compensation()
 
                 elif self.mode == mode_const.MVC_MODE:  # MVC measurement
@@ -214,7 +216,7 @@ class M1Thread(QThread):
                     self.m1.set_position(NeutralPos)
 
                 elif self.mode == mode_const.TRC_MODE:  # Tracking mode
-                    target = self.callback([self.m1.position, self.m1.torque_s])
+                    target = self.callback([self.m1.position, self.m1.torque_s - offset])
                     self.m1.compensation()
                     self.Unity.start()
                     self.UnityServer = PyServer.Server(self.Unity.conn_dt, self.Unity.conn_list, self.m1.position-posOffset, target-posOffset)
@@ -223,17 +225,21 @@ class M1Thread(QThread):
                     target = self.callback([self.m1.position])
                     self.m1.set_position(target)
 
-                elif self.mode == mode_const.VFB_MODE:  # Visaul feedback mode
-                    target = self.callback([self.m1.position, self.m1.torque_s])
+                elif self.mode == mode_const.VFB_MODE:  # Visual feedback mode
+                    target = self.callback([self.m1.position, self.m1.torque_s - offset])
                     self.m1.compensation()
                     self.Unity.start()
                     self.UnityServer = PyServer.Server(self.Unity.conn_dt, self.Unity.conn_list, self.m1.position-posOffset, target-posOffset)
 
                 elif self.mode == mode_const.HFB_MODE:    # Haptic feedback mode
-                    target = self.callback([self.m1.position, self.m1.torque_s])
+                    target = self.callback([self.m1.position, self.m1.torque_s - offset])
                     self.m1.compensation()
                     self.Unity.start()
                     self.UnityServer = PyServer.Server(self.Unity.conn_dt, self.Unity.conn_list, self.m1.position-posOffset, target-posOffset)
+
+                elif self.mode == mode_const.TSO_MODE:    # Torque sensor offset mode
+                    target = self.callback([self.m1.position])
+                    self.m1.set_position(0)
 
             #####################
             #### Data saving ####
@@ -242,7 +248,7 @@ class M1Thread(QThread):
             self.All_queue.put(self.timenow)
             self.All_queue.put(target)
             self.All_queue.put(self.m1.position)
-            self.All_queue.put(self.m1.torque_s)
+            self.All_queue.put(self.m1.torque_s - offset)
             self.All_queue.put(EMG1Raw)
             self.All_queue.put(EMG2Raw)
             self.All_queue.put(saveMaxMVC1)
@@ -297,6 +303,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.cbmode.addItem("CPM Mode")
         self.cbmode.addItem("Visual Feedback Mode")
         self.cbmode.addItem("Haptic Feedback Mode")
+        self.cbmode.addItem("Torque Sensor Offset Mode")
         self.cbmode.currentIndexChanged.connect(self.modechange)
 
         self.btn_start = QtWidgets.QPushButton('Start')
@@ -516,6 +523,7 @@ class MainWindow(QtWidgets.QMainWindow):
         gl.set_value('saveMaxMVC1', 1)
         gl.set_value('saveMaxMVC2', 1)
         gl.set_value('TorqueOffset', 0)
+        gl.set_value('MVCTorqueOffset', 0)
 
         #### Plot Init ####
         self.plot_init = 0
@@ -652,10 +660,12 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.btn_load.setEnabled(True)
                 self.slider1.setEnabled(True)
                 self.slider2.setEnabled(True)
-            elif self.mode == mode_const.TRC_MODE:
+            elif self.mode == mode_const.TRC_MODE:  # Tracking mode
                 self.cbTraj.setCurrentIndex(1)
                 # self.cbTraj.setEnabled(True)
                 self.btn_load.setEnabled(True)
+            elif self.mode == mode_const.TSO_MODE:  # Torque sensor offset mode
+                self.btn_start.setEnabled(True)
 
         elif self.status == 2:              ####### running mode
             self.disable_btns()                     # disable all buttons
@@ -679,6 +689,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 self.slider2.setEnabled(True)
             elif self.mode == mode_const.TRC_MODE:
                 self.btn_Saving.setEnabled(True)
+            elif self.mode == mode_const.TSO_MODE:
+                self.btn_TorCali.setEnabled(True)
+                self.btn_start.setEnabled(True)
 
     ##########################################################
     #### Line1: Functions about connection and start/exit ####
@@ -690,9 +703,8 @@ class MainWindow(QtWidgets.QMainWindow):
             #### EMG connection ####
             try:
                 self.EMGthread = EMGThread(self.check, self.EMGQ)
-                print("EMG Connected!")
             except:
-                print('No EMG Connection! Please check and restart.')    # If No EMG connection, the system will not work.
+                print('EMG initialization error.')
 
             #### M1 thread connection ####
             try:
@@ -706,18 +718,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.btn_start.setEnabled(True)
             self.btn_start.setEnabled(True)
             self.cbmode.setEnabled(True)
-
-            # self.btn_connect.setDisabled(True)
-            # self.btn_start.setDisabled(False)
-            # self.btn_Exit.setDisabled(False)
-            # self.btn_MaxROM.setDisabled(False)
-            # self.btn_MinROM.setDisabled(False)
-            # self.btn_Neutral.setDisabled(False)
-            # self.btn_MVC.setDisabled(False)
-            # self.btn_EMGCali.setDisabled(False)
-            # self.btn_TorCali.setDisabled(False)
-
-            print("Connect pcan!")
 
     def start(self):
         if self.status == 1:
@@ -805,7 +805,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.Savingstatus = 2
 
             #### Start saving thread ####
-            savingtime = 'Data' + time.strftime('_%m%d_%H%M%S') + '.csv'
+            savingtime = 'Data\\Data' + time.strftime('_%m%d_%H%M%S') + '.csv'
             try:
                 self.m1thread.All_queue.queue.clear()
                 self.EMG_saving = DataSave(1, self.m1thread.All_queue, 15, savingtime)    # The number here (15) is decided by the kinds of data you want to save
@@ -912,7 +912,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.NeutralPosition = self.m1thread.m1.position
             gl.set_value('NeutralPosition', self.NeutralPosition)
         except:
-            print('Neural setting failed!')
+            print('Neutral setting failed!')
 
     def MaxROM(self):
         try:
@@ -951,7 +951,12 @@ class MainWindow(QtWidgets.QMainWindow):
         elif self.m1thread.TorCali == 1:
             self.m1thread.TorCali = 0
             self.btn_TorCali.setText("Torque Offset")
-            gl.set_value('TorqueOffset', self.m1thread.TorSum / self.m1thread.TorCounter)
+            if self.mode == mode_const.MVC_MODE:  # MVC measurement
+                gl.set_value('MVCTorqueOffset', self.m1thread.TorSum / self.m1thread.TorCounter)
+                print('MVC offset: ', gl.get_value('MVCTorqueOffset'))
+            elif self.mode == mode_const.TSO_MODE:
+                gl.set_value('TorqueOffset', self.m1thread.TorSum / self.m1thread.TorCounter)
+                print('Torque sensor offset: ', gl.get_value('TorqueOffset'))
 
     ###############################################################################################
     #### Line5: Functions about EMG calibration, MVC measurement and EMG gain setting (slider) ####
