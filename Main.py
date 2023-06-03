@@ -943,7 +943,10 @@ class MainWindow(QtWidgets.QMainWindow):
     def TorCali_Func(self):
         if self.m1thread.TorCali == 0:
             self.btn_TorCali.setText("Stop")
-            gl.set_value('TorqueOffset', 0)  # FFTAI_M1 file uses this torque offset, so set it as global variable
+            if self.mode == mode_const.MVC_MODE:  # MVC measurement
+                gl.set_value('MVCTorqueOffset', 0)
+            elif self.mode == mode_const.TSO_MODE:  # Torque sensor offset
+                gl.set_value('TorqueOffset', 0)  # FFTAI_M1 file uses this torque offset, so set it as global variable
             self.m1thread.TorSum = 0
             self.m1thread.TorCounter = 0
             self.m1thread.TorCali = 1
@@ -954,7 +957,7 @@ class MainWindow(QtWidgets.QMainWindow):
             if self.mode == mode_const.MVC_MODE:  # MVC measurement
                 gl.set_value('MVCTorqueOffset', self.m1thread.TorSum / self.m1thread.TorCounter)
                 print('MVC offset: ', gl.get_value('MVCTorqueOffset'))
-            elif self.mode == mode_const.TSO_MODE:
+            elif self.mode == mode_const.TSO_MODE: # Torque sensor offset
                 gl.set_value('TorqueOffset', self.m1thread.TorSum / self.m1thread.TorCounter)
                 print('Torque sensor offset: ', gl.get_value('TorqueOffset'))
 
@@ -997,8 +1000,16 @@ class MainWindow(QtWidgets.QMainWindow):
             try:
                 torMax = self.m1thread.TorMax
                 torMin = self.m1thread.TorMin
-                saveMaxMVC1 = self.m1thread.EMG1_Max
-                saveMaxMVC2 = self.m1thread.EMG2_Max
+                if self.m1thread.EMG1_Max == 0:
+                    saveMaxMVC1 = 1
+                else:
+                    saveMaxMVC1 = self.m1thread.EMG1_Max
+
+                if self.m1thread.EMG2_Max == 0:
+                    saveMaxMVC2 = 1
+                else:
+                    saveMaxMVC2 = self.m1thread.EMG2_Max
+
                 gl.set_value('saveMaxMVC1', saveMaxMVC1)
                 gl.set_value('saveMaxMVC2', saveMaxMVC2)
             except:

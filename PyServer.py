@@ -61,7 +61,7 @@ class Server:
         try:
             self.conn_dt[self.conn_list[-1]].sendall(posString.encode('utf-8'))
         except:
-           print('No Unity Connected')
+           # print('No Unity Connected')
            pass
 
         try:
